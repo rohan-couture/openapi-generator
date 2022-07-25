@@ -113,6 +113,7 @@ public abstract class AbstractPythonConnexionServerCodegen extends AbstractPytho
         supportingFiles.add(new SupportingFile("README.mustache", "", "README.md"));
         supportingFiles.add(new SupportingFile("test-requirements.mustache", "", "test-requirements.txt"));
         supportingFiles.add(new SupportingFile("requirements.mustache", "", "requirements.txt"));
+        supportingFiles.add(new SupportingFile("user-requirements.mustache", "", "user-requirements.txt"));
 
         regexModifiers = new HashMap<Character, String>();
         regexModifiers.put('i', "IGNORECASE");
