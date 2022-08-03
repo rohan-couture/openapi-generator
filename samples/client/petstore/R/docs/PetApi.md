@@ -5,13 +5,13 @@ All URIs are relative to *http://petstore.swagger.io/v2*
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**AddPet**](PetApi.md#AddPet) | **POST** /pet | Add a new pet to the store
-[**DeletePet**](PetApi.md#DeletePet) | **DELETE** /pet/{petId}?streaming | Deletes a pet
+[**DeletePet**](PetApi.md#DeletePet) | **DELETE** /pet/{petId} | Deletes a pet
 [**FindPetsByStatus**](PetApi.md#FindPetsByStatus) | **GET** /pet/findByStatus | Finds Pets by status
 [**FindPetsByTags**](PetApi.md#FindPetsByTags) | **GET** /pet/findByTags | Finds Pets by tags
 [**GetPetById**](PetApi.md#GetPetById) | **GET** /pet/{petId} | Find pet by ID
 [**GetPetByIdStreaming**](PetApi.md#GetPetByIdStreaming) | **GET** /pet/{petId}?streaming | Find pet by ID (streaming)
 [**UpdatePet**](PetApi.md#UpdatePet) | **PUT** /pet | Update an existing pet
-[**UpdatePetWithForm**](PetApi.md#UpdatePetWithForm) | **POST** /pet/{petId}?streaming | Updates a pet in the store with form data
+[**UpdatePetWithForm**](PetApi.md#UpdatePetWithForm) | **POST** /pet/{petId} | Updates a pet in the store with form data
 [**UploadFile**](PetApi.md#UploadFile) | **POST** /pet/{petId}/uploadImage | uploads an image
 
 
@@ -41,14 +41,16 @@ result <- tryCatch(
           )
 # In case of error, print the error object
 if (!is.null(result$ApiException)) {
-  cat(result$ApiException$toString())
+  dput(result$ApiException)
+  # error object
+  dput(result$ApiException$error_object)
 } else {
   # deserialized response object
-  response.object <- result$content
+  dput(result$content)
   # response headers
-  response.headers <- result$response$headers
+  dput(result$response$headers)
   # response status code
-  response.status.code <- result$response$status_code
+  dput(result$response$status_code)
 }
 ```
 
@@ -101,12 +103,14 @@ result <- tryCatch(
           )
 # In case of error, print the error object
 if (!is.null(result$ApiException)) {
-  cat(result$ApiException$toString())
+  dput(result$ApiException)
+  # error object
+  dput(result$ApiException$error_object)
 } else {
   # response headers
-  response.headers <- result$response$headers
+  dput(result$response$headers)
   # response status code
-  response.status.code <- result$response$status_code
+  dput(result$response$status_code)
 }
 ```
 
@@ -160,14 +164,16 @@ result <- tryCatch(
           )
 # In case of error, print the error object
 if (!is.null(result$ApiException)) {
-  cat(result$ApiException$toString())
+  dput(result$ApiException)
+  # error object
+  dput(result$ApiException$error_object)
 } else {
   # deserialized response object
-  response.object <- result$content
+  dput(result$content)
   # response headers
-  response.headers <- result$response$headers
+  dput(result$response$headers)
   # response status code
-  response.status.code <- result$response$status_code
+  dput(result$response$status_code)
 }
 ```
 
@@ -221,14 +227,16 @@ result <- tryCatch(
           )
 # In case of error, print the error object
 if (!is.null(result$ApiException)) {
-  cat(result$ApiException$toString())
+  dput(result$ApiException)
+  # error object
+  dput(result$ApiException$error_object)
 } else {
   # deserialized response object
-  response.object <- result$content
+  dput(result$content)
   # response headers
-  response.headers <- result$response$headers
+  dput(result$response$headers)
   # response status code
-  response.status.code <- result$response$status_code
+  dput(result$response$status_code)
 }
 ```
 
@@ -282,14 +290,16 @@ result <- tryCatch(
           )
 # In case of error, print the error object
 if (!is.null(result$ApiException)) {
-  cat(result$ApiException$toString())
+  dput(result$ApiException)
+  # error object
+  dput(result$ApiException$error_object)
 } else {
   # deserialized response object
-  response.object <- result$content
+  dput(result$content)
   # response headers
-  response.headers <- result$response$headers
+  dput(result$response$headers)
   # response status code
-  response.status.code <- result$response$status_code
+  dput(result$response$status_code)
 }
 ```
 
@@ -346,14 +356,16 @@ result <- tryCatch(
           )
 # In case of error, print the error object
 if (!is.null(result$ApiException)) {
-  cat(result$ApiException$toString())
+  dput(result$ApiException)
+  # error object
+  dput(result$ApiException$error_object)
 } else {
   # deserialized response object
-  response.object <- result$content
+  dput(result$content)
   # response headers
-  response.headers <- result$response$headers
+  dput(result$response$headers)
   # response status code
-  response.status.code <- result$response$status_code
+  dput(result$response$status_code)
 }
 ```
 
@@ -408,14 +420,16 @@ result <- tryCatch(
           )
 # In case of error, print the error object
 if (!is.null(result$ApiException)) {
-  cat(result$ApiException$toString())
+  dput(result$ApiException)
+  # error object
+  dput(result$ApiException$error_object)
 } else {
   # deserialized response object
-  response.object <- result$content
+  dput(result$content)
   # response headers
-  response.headers <- result$response$headers
+  dput(result$response$headers)
   # response status code
-  response.status.code <- result$response$status_code
+  dput(result$response$status_code)
 }
 ```
 
@@ -471,12 +485,14 @@ result <- tryCatch(
           )
 # In case of error, print the error object
 if (!is.null(result$ApiException)) {
-  cat(result$ApiException$toString())
+  dput(result$ApiException)
+  # error object
+  dput(result$ApiException$error_object)
 } else {
   # response headers
-  response.headers <- result$response$headers
+  dput(result$response$headers)
   # response status code
-  response.status.code <- result$response$status_code
+  dput(result$response$status_code)
 }
 ```
 
@@ -533,14 +549,16 @@ result <- tryCatch(
           )
 # In case of error, print the error object
 if (!is.null(result$ApiException)) {
-  cat(result$ApiException$toString())
+  dput(result$ApiException)
+  # error object
+  dput(result$ApiException$error_object)
 } else {
   # deserialized response object
-  response.object <- result$content
+  dput(result$content)
   # response headers
-  response.headers <- result$response$headers
+  dput(result$response$headers)
   # response status code
-  response.status.code <- result$response$status_code
+  dput(result$response$status_code)
 }
 ```
 

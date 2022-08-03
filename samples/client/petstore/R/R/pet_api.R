@@ -544,16 +544,15 @@ PetApi <- R6::R6Class(
     #' @return Pet
     #' @export
     AddPet = function(pet, data_file = NULL, ...) {
-      api_response <- self$AddPetWithHttpInfo(pet, data_file = data_file, ...)
-      local_var_response <- api_response$response
-      if (httr::status_code(local_var_response) >= 200 && httr::status_code(local_var_response) <= 299) {
-        api_response$content
-      } else if (httr::status_code(local_var_response) >= 300 && httr::status_code(local_var_response) <= 399) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 400 && httr::status_code(local_var_response) <= 499) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 500 && httr::status_code(local_var_response) <= 599) {
-        api_response
+      local_var_response <- self$AddPetWithHttpInfo(pet, data_file = data_file, ...)
+      if (local_var_response$status_code >= 200 && local_var_response$status_code <= 299) {
+        local_var_response$content
+      } else if (local_var_response$status_code >= 300 && local_var_response$status_code <= 399) {
+        local_var_response
+      } else if (local_var_response$status_code >= 400 && local_var_response$status_code <= 499) {
+        local_var_response
+      } else if (local_var_response$status_code >= 500 && local_var_response$status_code <= 599) {
+        local_var_response
       }
     },
     #' Add a new pet to the store
@@ -586,6 +585,12 @@ PetApi <- R6::R6Class(
 
       local_var_url_path <- "/pet"
       # HTTP basic auth
+      if (is.null(self$api_client$username) || is.null(self$api_client$password)) {
+        rlang::abort(message = "username, password in `api_client` must be set for authentication in the endpoint `AddPet`.",
+                     .subclass = "ApiException",
+                     ApiException = ApiException$new(status = 0,
+                                                     reason = "username, password in `api_client` must be set for authentication in the endpoint `AddPet`."))
+      }
       header_params["Authorization"] <- paste("Basic", base64enc::base64encode(charToRaw(paste(self$api_client$username, self$api_client$password, sep = ":"))))
 
       # The Accept request HTTP header
@@ -603,39 +608,40 @@ PetApi <- R6::R6Class(
                                  body = local_var_body,
                                  ...)
 
-      if (httr::status_code(local_var_resp) >= 200 && httr::status_code(local_var_resp) <= 299) {
+      if (local_var_resp$status_code >= 200 && local_var_resp$status_code <= 299) {
         # save response in a file
         if (!is.null(data_file)) {
-            write(httr::content(local_var_resp, "text", encoding = "UTF-8", simplifyVector = FALSE), data_file)
+            write(local_var_resp$response, data_file)
         }
 
         deserialized_resp_obj <- tryCatch(
-          self$api_client$deserialize(local_var_resp, "Pet", loadNamespace("petstore")),
+          self$api_client$deserialize(local_var_resp$response, "Pet", loadNamespace("petstore")),
           error = function(e) {
              rlang::abort(message = "Failed to deserialize response",
                           .subclass = "ApiException",
                           ApiException = ApiException$new(http_response = local_var_resp))
           }
         )
-        ApiResponse$new(deserialized_resp_obj, local_var_resp)
-      } else if (httr::status_code(local_var_resp) >= 300 && httr::status_code(local_var_resp) <= 399) {
-        local_var_error_msg <- toString(content(local_var_resp))
+        local_var_resp$content <- deserialized_resp_obj
+        local_var_resp
+      } else if (local_var_resp$status_code >= 300 && local_var_resp$status_code <= 399) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
-          local_var_error_msg <- paste("Server returned ", httr::status_code(local_var_resp), " response status code.")
+          local_var_error_msg <- paste("Server returned ", local_var_resp$status_code, " response status code.")
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 400 && httr::status_code(local_var_resp) <= 499) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 400 && local_var_resp$status_code <= 499) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api client exception encountered."
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 500 && httr::status_code(local_var_resp) <= 599) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 500 && local_var_resp$status_code <= 599) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api server exception encountered."
         }
@@ -655,16 +661,15 @@ PetApi <- R6::R6Class(
     #' @return void
     #' @export
     DeletePet = function(pet_id, api_key = NULL, ...) {
-      api_response <- self$DeletePetWithHttpInfo(pet_id, api_key, ...)
-      local_var_response <- api_response$response
-      if (httr::status_code(local_var_response) >= 200 && httr::status_code(local_var_response) <= 299) {
-        api_response$content
-      } else if (httr::status_code(local_var_response) >= 300 && httr::status_code(local_var_response) <= 399) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 400 && httr::status_code(local_var_response) <= 499) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 500 && httr::status_code(local_var_response) <= 599) {
-        api_response
+      local_var_response <- self$DeletePetWithHttpInfo(pet_id, api_key, ...)
+      if (local_var_response$status_code >= 200 && local_var_response$status_code <= 299) {
+        local_var_response$content
+      } else if (local_var_response$status_code >= 300 && local_var_response$status_code <= 399) {
+        local_var_response
+      } else if (local_var_response$status_code >= 400 && local_var_response$status_code <= 499) {
+        local_var_response
+      } else if (local_var_response$status_code >= 500 && local_var_response$status_code <= 599) {
+        local_var_response
       }
     },
     #' Deletes a pet
@@ -689,8 +694,10 @@ PetApi <- R6::R6Class(
                                                      reason = "Missing required parameter `pet_id`."))
       }
 
+      header_params["api_key"] <- `api_key`
+
       local_var_body <- NULL
-      local_var_url_path <- "/pet/{petId}?streaming"
+      local_var_url_path <- "/pet/{petId}"
       if (!missing(`pet_id`)) {
         local_var_url_path <- gsub(paste0("\\{", "petId", "\\}"), URLencode(as.character(`pet_id`), reserved = TRUE), local_var_url_path)
       }
@@ -713,26 +720,27 @@ PetApi <- R6::R6Class(
                                  body = local_var_body,
                                  ...)
 
-      if (httr::status_code(local_var_resp) >= 200 && httr::status_code(local_var_resp) <= 299) {
-        ApiResponse$new(NULL, local_var_resp)
-      } else if (httr::status_code(local_var_resp) >= 300 && httr::status_code(local_var_resp) <= 399) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      if (local_var_resp$status_code >= 200 && local_var_resp$status_code <= 299) {
+        local_var_resp$content <- NULL
+        local_var_resp
+      } else if (local_var_resp$status_code >= 300 && local_var_resp$status_code <= 399) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
-          local_var_error_msg <- paste("Server returned ", httr::status_code(local_var_resp), " response status code.")
+          local_var_error_msg <- paste("Server returned ", local_var_resp$status_code, " response status code.")
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 400 && httr::status_code(local_var_resp) <= 499) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 400 && local_var_resp$status_code <= 499) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api client exception encountered."
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 500 && httr::status_code(local_var_resp) <= 599) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 500 && local_var_resp$status_code <= 599) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api server exception encountered."
         }
@@ -752,16 +760,15 @@ PetApi <- R6::R6Class(
     #' @return array[Pet]
     #' @export
     FindPetsByStatus = function(status, data_file = NULL, ...) {
-      api_response <- self$FindPetsByStatusWithHttpInfo(status, data_file = data_file, ...)
-      local_var_response <- api_response$response
-      if (httr::status_code(local_var_response) >= 200 && httr::status_code(local_var_response) <= 299) {
-        api_response$content
-      } else if (httr::status_code(local_var_response) >= 300 && httr::status_code(local_var_response) <= 399) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 400 && httr::status_code(local_var_response) <= 499) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 500 && httr::status_code(local_var_response) <= 599) {
-        api_response
+      local_var_response <- self$FindPetsByStatusWithHttpInfo(status, data_file = data_file, ...)
+      if (local_var_response$status_code >= 200 && local_var_response$status_code <= 299) {
+        local_var_response$content
+      } else if (local_var_response$status_code >= 300 && local_var_response$status_code <= 399) {
+        local_var_response
+      } else if (local_var_response$status_code >= 400 && local_var_response$status_code <= 499) {
+        local_var_response
+      } else if (local_var_response$status_code >= 500 && local_var_response$status_code <= 599) {
+        local_var_response
       }
     },
     #' Finds Pets by status
@@ -786,6 +793,8 @@ PetApi <- R6::R6Class(
                                                      reason = "Missing required parameter `status`."))
       }
 
+      query_params["status"] <- status
+
       local_var_body <- NULL
       local_var_url_path <- "/pet/findByStatus"
       # OAuth token
@@ -806,39 +815,40 @@ PetApi <- R6::R6Class(
                                  body = local_var_body,
                                  ...)
 
-      if (httr::status_code(local_var_resp) >= 200 && httr::status_code(local_var_resp) <= 299) {
+      if (local_var_resp$status_code >= 200 && local_var_resp$status_code <= 299) {
         # save response in a file
         if (!is.null(data_file)) {
-            write(httr::content(local_var_resp, "text", encoding = "UTF-8", simplifyVector = FALSE), data_file)
+            write(local_var_resp$response, data_file)
         }
 
         deserialized_resp_obj <- tryCatch(
-          self$api_client$deserialize(local_var_resp, "array[Pet]", loadNamespace("petstore")),
+          self$api_client$deserialize(local_var_resp$response, "array[Pet]", loadNamespace("petstore")),
           error = function(e) {
              rlang::abort(message = "Failed to deserialize response",
                           .subclass = "ApiException",
                           ApiException = ApiException$new(http_response = local_var_resp))
           }
         )
-        ApiResponse$new(deserialized_resp_obj, local_var_resp)
-      } else if (httr::status_code(local_var_resp) >= 300 && httr::status_code(local_var_resp) <= 399) {
-        local_var_error_msg <- toString(content(local_var_resp))
+        local_var_resp$content <- deserialized_resp_obj
+        local_var_resp
+      } else if (local_var_resp$status_code >= 300 && local_var_resp$status_code <= 399) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
-          local_var_error_msg <- paste("Server returned ", httr::status_code(local_var_resp), " response status code.")
+          local_var_error_msg <- paste("Server returned ", local_var_resp$status_code, " response status code.")
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 400 && httr::status_code(local_var_resp) <= 499) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 400 && local_var_resp$status_code <= 499) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api client exception encountered."
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 500 && httr::status_code(local_var_resp) <= 599) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 500 && local_var_resp$status_code <= 599) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api server exception encountered."
         }
@@ -858,16 +868,15 @@ PetApi <- R6::R6Class(
     #' @return array[Pet]
     #' @export
     FindPetsByTags = function(tags, data_file = NULL, ...) {
-      api_response <- self$FindPetsByTagsWithHttpInfo(tags, data_file = data_file, ...)
-      local_var_response <- api_response$response
-      if (httr::status_code(local_var_response) >= 200 && httr::status_code(local_var_response) <= 299) {
-        api_response$content
-      } else if (httr::status_code(local_var_response) >= 300 && httr::status_code(local_var_response) <= 399) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 400 && httr::status_code(local_var_response) <= 499) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 500 && httr::status_code(local_var_response) <= 599) {
-        api_response
+      local_var_response <- self$FindPetsByTagsWithHttpInfo(tags, data_file = data_file, ...)
+      if (local_var_response$status_code >= 200 && local_var_response$status_code <= 299) {
+        local_var_response$content
+      } else if (local_var_response$status_code >= 300 && local_var_response$status_code <= 399) {
+        local_var_response
+      } else if (local_var_response$status_code >= 400 && local_var_response$status_code <= 499) {
+        local_var_response
+      } else if (local_var_response$status_code >= 500 && local_var_response$status_code <= 599) {
+        local_var_response
       }
     },
     #' Finds Pets by tags
@@ -892,6 +901,8 @@ PetApi <- R6::R6Class(
                                                      reason = "Missing required parameter `tags`."))
       }
 
+      query_params["tags"] <- tags
+
       local_var_body <- NULL
       local_var_url_path <- "/pet/findByTags"
       # OAuth token
@@ -912,39 +923,40 @@ PetApi <- R6::R6Class(
                                  body = local_var_body,
                                  ...)
 
-      if (httr::status_code(local_var_resp) >= 200 && httr::status_code(local_var_resp) <= 299) {
+      if (local_var_resp$status_code >= 200 && local_var_resp$status_code <= 299) {
         # save response in a file
         if (!is.null(data_file)) {
-            write(httr::content(local_var_resp, "text", encoding = "UTF-8", simplifyVector = FALSE), data_file)
+            write(local_var_resp$response, data_file)
         }
 
         deserialized_resp_obj <- tryCatch(
-          self$api_client$deserialize(local_var_resp, "array[Pet]", loadNamespace("petstore")),
+          self$api_client$deserialize(local_var_resp$response, "array[Pet]", loadNamespace("petstore")),
           error = function(e) {
              rlang::abort(message = "Failed to deserialize response",
                           .subclass = "ApiException",
                           ApiException = ApiException$new(http_response = local_var_resp))
           }
         )
-        ApiResponse$new(deserialized_resp_obj, local_var_resp)
-      } else if (httr::status_code(local_var_resp) >= 300 && httr::status_code(local_var_resp) <= 399) {
-        local_var_error_msg <- toString(content(local_var_resp))
+        local_var_resp$content <- deserialized_resp_obj
+        local_var_resp
+      } else if (local_var_resp$status_code >= 300 && local_var_resp$status_code <= 399) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
-          local_var_error_msg <- paste("Server returned ", httr::status_code(local_var_resp), " response status code.")
+          local_var_error_msg <- paste("Server returned ", local_var_resp$status_code, " response status code.")
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 400 && httr::status_code(local_var_resp) <= 499) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 400 && local_var_resp$status_code <= 499) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api client exception encountered."
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 500 && httr::status_code(local_var_resp) <= 599) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 500 && local_var_resp$status_code <= 599) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api server exception encountered."
         }
@@ -964,16 +976,15 @@ PetApi <- R6::R6Class(
     #' @return Pet
     #' @export
     GetPetById = function(pet_id, data_file = NULL, ...) {
-      api_response <- self$GetPetByIdWithHttpInfo(pet_id, data_file = data_file, ...)
-      local_var_response <- api_response$response
-      if (httr::status_code(local_var_response) >= 200 && httr::status_code(local_var_response) <= 299) {
-        api_response$content
-      } else if (httr::status_code(local_var_response) >= 300 && httr::status_code(local_var_response) <= 399) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 400 && httr::status_code(local_var_response) <= 499) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 500 && httr::status_code(local_var_response) <= 599) {
-        api_response
+      local_var_response <- self$GetPetByIdWithHttpInfo(pet_id, data_file = data_file, ...)
+      if (local_var_response$status_code >= 200 && local_var_response$status_code <= 299) {
+        local_var_response$content
+      } else if (local_var_response$status_code >= 300 && local_var_response$status_code <= 399) {
+        local_var_response
+      } else if (local_var_response$status_code >= 400 && local_var_response$status_code <= 499) {
+        local_var_response
+      } else if (local_var_response$status_code >= 500 && local_var_response$status_code <= 599) {
+        local_var_response
       }
     },
     #' Find pet by ID
@@ -1021,39 +1032,40 @@ PetApi <- R6::R6Class(
                                  body = local_var_body,
                                  ...)
 
-      if (httr::status_code(local_var_resp) >= 200 && httr::status_code(local_var_resp) <= 299) {
+      if (local_var_resp$status_code >= 200 && local_var_resp$status_code <= 299) {
         # save response in a file
         if (!is.null(data_file)) {
-            write(httr::content(local_var_resp, "text", encoding = "UTF-8", simplifyVector = FALSE), data_file)
+            write(local_var_resp$response, data_file)
         }
 
         deserialized_resp_obj <- tryCatch(
-          self$api_client$deserialize(local_var_resp, "Pet", loadNamespace("petstore")),
+          self$api_client$deserialize(local_var_resp$response, "Pet", loadNamespace("petstore")),
           error = function(e) {
              rlang::abort(message = "Failed to deserialize response",
                           .subclass = "ApiException",
                           ApiException = ApiException$new(http_response = local_var_resp))
           }
         )
-        ApiResponse$new(deserialized_resp_obj, local_var_resp)
-      } else if (httr::status_code(local_var_resp) >= 300 && httr::status_code(local_var_resp) <= 399) {
-        local_var_error_msg <- toString(content(local_var_resp))
+        local_var_resp$content <- deserialized_resp_obj
+        local_var_resp
+      } else if (local_var_resp$status_code >= 300 && local_var_resp$status_code <= 399) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
-          local_var_error_msg <- paste("Server returned ", httr::status_code(local_var_resp), " response status code.")
+          local_var_error_msg <- paste("Server returned ", local_var_resp$status_code, " response status code.")
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 400 && httr::status_code(local_var_resp) <= 499) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 400 && local_var_resp$status_code <= 499) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api client exception encountered."
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 500 && httr::status_code(local_var_resp) <= 599) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 500 && local_var_resp$status_code <= 599) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api server exception encountered."
         }
@@ -1074,20 +1086,19 @@ PetApi <- R6::R6Class(
     #' @return Pet
     #' @export
     GetPetByIdStreaming = function(pet_id, stream_callback = NULL, data_file = NULL, ...) {
-      api_response <- self$GetPetByIdStreamingWithHttpInfo(pet_id, stream_callback = stream_callback, data_file = data_file, ...)
+      local_var_response <- self$GetPetByIdStreamingWithHttpInfo(pet_id, stream_callback = stream_callback, data_file = data_file, ...)
       if (typeof(stream_callback) == "closure") { # return void if streaming is enabled
         return(invisible(NULL))
       }
 
-      local_var_response <- api_response$response
-      if (httr::status_code(local_var_response) >= 200 && httr::status_code(local_var_response) <= 299) {
-        api_response$content
-      } else if (httr::status_code(local_var_response) >= 300 && httr::status_code(local_var_response) <= 399) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 400 && httr::status_code(local_var_response) <= 499) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 500 && httr::status_code(local_var_response) <= 599) {
-        api_response
+      if (local_var_response$status_code >= 200 && local_var_response$status_code <= 299) {
+        local_var_response$content
+      } else if (local_var_response$status_code >= 300 && local_var_response$status_code <= 399) {
+        local_var_response
+      } else if (local_var_response$status_code >= 400 && local_var_response$status_code <= 499) {
+        local_var_response
+      } else if (local_var_response$status_code >= 500 && local_var_response$status_code <= 599) {
+        local_var_response
       }
     },
     #' Find pet by ID (streaming)
@@ -1144,39 +1155,40 @@ PetApi <- R6::R6Class(
         return(invisible(NULL))
       }
 
-      if (httr::status_code(local_var_resp) >= 200 && httr::status_code(local_var_resp) <= 299) {
+      if (local_var_resp$status_code >= 200 && local_var_resp$status_code <= 299) {
         # save response in a file
         if (!is.null(data_file)) {
-            write(httr::content(local_var_resp, "text", encoding = "UTF-8", simplifyVector = FALSE), data_file)
+            write(local_var_resp$response, data_file)
         }
 
         deserialized_resp_obj <- tryCatch(
-          self$api_client$deserialize(local_var_resp, "Pet", loadNamespace("petstore")),
+          self$api_client$deserialize(local_var_resp$response, "Pet", loadNamespace("petstore")),
           error = function(e) {
              rlang::abort(message = "Failed to deserialize response",
                           .subclass = "ApiException",
                           ApiException = ApiException$new(http_response = local_var_resp))
           }
         )
-        ApiResponse$new(deserialized_resp_obj, local_var_resp)
-      } else if (httr::status_code(local_var_resp) >= 300 && httr::status_code(local_var_resp) <= 399) {
-        local_var_error_msg <- toString(content(local_var_resp))
+        local_var_resp$content <- deserialized_resp_obj
+        local_var_resp
+      } else if (local_var_resp$status_code >= 300 && local_var_resp$status_code <= 399) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
-          local_var_error_msg <- paste("Server returned ", httr::status_code(local_var_resp), " response status code.")
+          local_var_error_msg <- paste("Server returned ", local_var_resp$status_code, " response status code.")
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 400 && httr::status_code(local_var_resp) <= 499) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 400 && local_var_resp$status_code <= 499) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api client exception encountered."
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 500 && httr::status_code(local_var_resp) <= 599) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 500 && local_var_resp$status_code <= 599) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api server exception encountered."
         }
@@ -1196,16 +1208,15 @@ PetApi <- R6::R6Class(
     #' @return Pet
     #' @export
     UpdatePet = function(pet, data_file = NULL, ...) {
-      api_response <- self$UpdatePetWithHttpInfo(pet, data_file = data_file, ...)
-      local_var_response <- api_response$response
-      if (httr::status_code(local_var_response) >= 200 && httr::status_code(local_var_response) <= 299) {
-        api_response$content
-      } else if (httr::status_code(local_var_response) >= 300 && httr::status_code(local_var_response) <= 399) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 400 && httr::status_code(local_var_response) <= 499) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 500 && httr::status_code(local_var_response) <= 599) {
-        api_response
+      local_var_response <- self$UpdatePetWithHttpInfo(pet, data_file = data_file, ...)
+      if (local_var_response$status_code >= 200 && local_var_response$status_code <= 299) {
+        local_var_response$content
+      } else if (local_var_response$status_code >= 300 && local_var_response$status_code <= 399) {
+        local_var_response
+      } else if (local_var_response$status_code >= 400 && local_var_response$status_code <= 499) {
+        local_var_response
+      } else if (local_var_response$status_code >= 500 && local_var_response$status_code <= 599) {
+        local_var_response
       }
     },
     #' Update an existing pet
@@ -1255,39 +1266,40 @@ PetApi <- R6::R6Class(
                                  body = local_var_body,
                                  ...)
 
-      if (httr::status_code(local_var_resp) >= 200 && httr::status_code(local_var_resp) <= 299) {
+      if (local_var_resp$status_code >= 200 && local_var_resp$status_code <= 299) {
         # save response in a file
         if (!is.null(data_file)) {
-            write(httr::content(local_var_resp, "text", encoding = "UTF-8", simplifyVector = FALSE), data_file)
+            write(local_var_resp$response, data_file)
         }
 
         deserialized_resp_obj <- tryCatch(
-          self$api_client$deserialize(local_var_resp, "Pet", loadNamespace("petstore")),
+          self$api_client$deserialize(local_var_resp$response, "Pet", loadNamespace("petstore")),
           error = function(e) {
              rlang::abort(message = "Failed to deserialize response",
                           .subclass = "ApiException",
                           ApiException = ApiException$new(http_response = local_var_resp))
           }
         )
-        ApiResponse$new(deserialized_resp_obj, local_var_resp)
-      } else if (httr::status_code(local_var_resp) >= 300 && httr::status_code(local_var_resp) <= 399) {
-        local_var_error_msg <- toString(content(local_var_resp))
+        local_var_resp$content <- deserialized_resp_obj
+        local_var_resp
+      } else if (local_var_resp$status_code >= 300 && local_var_resp$status_code <= 399) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
-          local_var_error_msg <- paste("Server returned ", httr::status_code(local_var_resp), " response status code.")
+          local_var_error_msg <- paste("Server returned ", local_var_resp$status_code, " response status code.")
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 400 && httr::status_code(local_var_resp) <= 499) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 400 && local_var_resp$status_code <= 499) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api client exception encountered."
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 500 && httr::status_code(local_var_resp) <= 599) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 500 && local_var_resp$status_code <= 599) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api server exception encountered."
         }
@@ -1308,16 +1320,15 @@ PetApi <- R6::R6Class(
     #' @return void
     #' @export
     UpdatePetWithForm = function(pet_id, name = NULL, status = NULL, ...) {
-      api_response <- self$UpdatePetWithFormWithHttpInfo(pet_id, name, status, ...)
-      local_var_response <- api_response$response
-      if (httr::status_code(local_var_response) >= 200 && httr::status_code(local_var_response) <= 299) {
-        api_response$content
-      } else if (httr::status_code(local_var_response) >= 300 && httr::status_code(local_var_response) <= 399) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 400 && httr::status_code(local_var_response) <= 499) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 500 && httr::status_code(local_var_response) <= 599) {
-        api_response
+      local_var_response <- self$UpdatePetWithFormWithHttpInfo(pet_id, name, status, ...)
+      if (local_var_response$status_code >= 200 && local_var_response$status_code <= 299) {
+        local_var_response$content
+      } else if (local_var_response$status_code >= 300 && local_var_response$status_code <= 399) {
+        local_var_response
+      } else if (local_var_response$status_code >= 400 && local_var_response$status_code <= 499) {
+        local_var_response
+      } else if (local_var_response$status_code >= 500 && local_var_response$status_code <= 599) {
+        local_var_response
       }
     },
     #' Updates a pet in the store with form data
@@ -1348,7 +1359,7 @@ PetApi <- R6::R6Class(
         "status" = status
       )
 
-      local_var_url_path <- "/pet/{petId}?streaming"
+      local_var_url_path <- "/pet/{petId}"
       if (!missing(`pet_id`)) {
         local_var_url_path <- gsub(paste0("\\{", "petId", "\\}"), URLencode(as.character(`pet_id`), reserved = TRUE), local_var_url_path)
       }
@@ -1371,26 +1382,27 @@ PetApi <- R6::R6Class(
                                  body = local_var_body,
                                  ...)
 
-      if (httr::status_code(local_var_resp) >= 200 && httr::status_code(local_var_resp) <= 299) {
-        ApiResponse$new(NULL, local_var_resp)
-      } else if (httr::status_code(local_var_resp) >= 300 && httr::status_code(local_var_resp) <= 399) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      if (local_var_resp$status_code >= 200 && local_var_resp$status_code <= 299) {
+        local_var_resp$content <- NULL
+        local_var_resp
+      } else if (local_var_resp$status_code >= 300 && local_var_resp$status_code <= 399) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
-          local_var_error_msg <- paste("Server returned ", httr::status_code(local_var_resp), " response status code.")
+          local_var_error_msg <- paste("Server returned ", local_var_resp$status_code, " response status code.")
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 400 && httr::status_code(local_var_resp) <= 499) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 400 && local_var_resp$status_code <= 499) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api client exception encountered."
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 500 && httr::status_code(local_var_resp) <= 599) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 500 && local_var_resp$status_code <= 599) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api server exception encountered."
         }
@@ -1412,16 +1424,15 @@ PetApi <- R6::R6Class(
     #' @return ModelApiResponse
     #' @export
     UploadFile = function(pet_id, additional_metadata = NULL, file = NULL, data_file = NULL, ...) {
-      api_response <- self$UploadFileWithHttpInfo(pet_id, additional_metadata, file, data_file = data_file, ...)
-      local_var_response <- api_response$response
-      if (httr::status_code(local_var_response) >= 200 && httr::status_code(local_var_response) <= 299) {
-        api_response$content
-      } else if (httr::status_code(local_var_response) >= 300 && httr::status_code(local_var_response) <= 399) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 400 && httr::status_code(local_var_response) <= 499) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 500 && httr::status_code(local_var_response) <= 599) {
-        api_response
+      local_var_response <- self$UploadFileWithHttpInfo(pet_id, additional_metadata, file, data_file = data_file, ...)
+      if (local_var_response$status_code >= 200 && local_var_response$status_code <= 299) {
+        local_var_response$content
+      } else if (local_var_response$status_code >= 300 && local_var_response$status_code <= 399) {
+        local_var_response
+      } else if (local_var_response$status_code >= 400 && local_var_response$status_code <= 499) {
+        local_var_response
+      } else if (local_var_response$status_code >= 500 && local_var_response$status_code <= 599) {
+        local_var_response
       }
     },
     #' uploads an image
@@ -1476,39 +1487,40 @@ PetApi <- R6::R6Class(
                                  body = local_var_body,
                                  ...)
 
-      if (httr::status_code(local_var_resp) >= 200 && httr::status_code(local_var_resp) <= 299) {
+      if (local_var_resp$status_code >= 200 && local_var_resp$status_code <= 299) {
         # save response in a file
         if (!is.null(data_file)) {
-            write(httr::content(local_var_resp, "text", encoding = "UTF-8", simplifyVector = FALSE), data_file)
+            write(local_var_resp$response, data_file)
         }
 
         deserialized_resp_obj <- tryCatch(
-          self$api_client$deserialize(local_var_resp, "ModelApiResponse", loadNamespace("petstore")),
+          self$api_client$deserialize(local_var_resp$response, "ModelApiResponse", loadNamespace("petstore")),
           error = function(e) {
              rlang::abort(message = "Failed to deserialize response",
                           .subclass = "ApiException",
                           ApiException = ApiException$new(http_response = local_var_resp))
           }
         )
-        ApiResponse$new(deserialized_resp_obj, local_var_resp)
-      } else if (httr::status_code(local_var_resp) >= 300 && httr::status_code(local_var_resp) <= 399) {
-        local_var_error_msg <- toString(content(local_var_resp))
+        local_var_resp$content <- deserialized_resp_obj
+        local_var_resp
+      } else if (local_var_resp$status_code >= 300 && local_var_resp$status_code <= 399) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
-          local_var_error_msg <- paste("Server returned ", httr::status_code(local_var_resp), " response status code.")
+          local_var_error_msg <- paste("Server returned ", local_var_resp$status_code, " response status code.")
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 400 && httr::status_code(local_var_resp) <= 499) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 400 && local_var_resp$status_code <= 499) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api client exception encountered."
         }
         rlang::abort(message = local_var_error_msg,
                      .subclass = "ApiException",
                      ApiException = ApiException$new(http_response = local_var_resp))
-      } else if (httr::status_code(local_var_resp) >= 500 && httr::status_code(local_var_resp) <= 599) {
-        local_var_error_msg <- toString(content(local_var_resp))
+      } else if (local_var_resp$status_code >= 500 && local_var_resp$status_code <= 599) {
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api server exception encountered."
         }

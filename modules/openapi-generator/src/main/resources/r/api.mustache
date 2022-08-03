@@ -194,22 +194,21 @@
     #' @return {{{returnType}}}{{^returnType}}void{{/returnType}}
     #' @export
     {{{operationId}}} = function({{#requiredParams}}{{paramName}}, {{/requiredParams}}{{#optionalParams}}{{paramName}} = {{^defaultValue}}NULL{{/defaultValue}}{{{defaultValue}}}, {{/optionalParams}}{{#vendorExtensions.x-streaming}}stream_callback = NULL, {{/vendorExtensions.x-streaming}}{{#returnType}}data_file = NULL, {{/returnType}}...) {
-      api_response <- self${{{operationId}}}{{WithHttpInfo}}({{#allParams}}{{paramName}}, {{/allParams}}{{#vendorExtensions.x-streaming}}stream_callback = stream_callback, {{/vendorExtensions.x-streaming}}{{#returnType}}data_file = data_file, {{/returnType}}...)
+      local_var_response <- self${{{operationId}}}{{WithHttpInfo}}({{#allParams}}{{paramName}}, {{/allParams}}{{#vendorExtensions.x-streaming}}stream_callback = stream_callback, {{/vendorExtensions.x-streaming}}{{#returnType}}data_file = data_file, {{/returnType}}...)
       {{#vendorExtensions.x-streaming}}
       if (typeof(stream_callback) == "closure") { # return void if streaming is enabled
         return(invisible(NULL))
       }
 
       {{/vendorExtensions.x-streaming}}
-      local_var_response <- api_response$response
-      if (httr::status_code(local_var_response) >= 200 && httr::status_code(local_var_response) <= 299) {
-        api_response$content
-      } else if (httr::status_code(local_var_response) >= 300 && httr::status_code(local_var_response) <= 399) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 400 && httr::status_code(local_var_response) <= 499) {
-        api_response
-      } else if (httr::status_code(local_var_response) >= 500 && httr::status_code(local_var_response) <= 599) {
-        api_response
+      if (local_var_response$status_code >= 200 && local_var_response$status_code <= 299) {
+        local_var_response$content
+      } else if (local_var_response$status_code >= 300 && local_var_response$status_code <= 399) {
+        local_var_response
+      } else if (local_var_response$status_code >= 400 && local_var_response$status_code <= 499) {
+        local_var_response
+      } else if (local_var_response$status_code >= 500 && local_var_response$status_code <= 599) {
+        local_var_response
       }
     },
     #' {{{summary}}}
@@ -251,14 +250,14 @@
       }
 
       {{/requiredParams}}
-      {{#header_params}}
+      {{#headerParams}}
       header_params["{{baseName}}"] <- `{{paramName}}`
 
-      {{/header_params}}
-      {{#query_params}}
+      {{/headerParams}}
+      {{#queryParams}}
       query_params["{{baseName}}"] <- {{paramName}}
 
-      {{/query_params}}
+      {{/queryParams}}
       {{#hasFormParams}}
       local_var_body <- list(
         {{#formParams}}
@@ -266,7 +265,12 @@
         "{{baseName}}" = {{paramName}}{{^-last}},{{/-last}}
         {{/isFile}}
         {{#isFile}}
+        {{^isHttr2}}
         "{{baseName}}" = httr::upload_file({{paramName}}){{^-last}},{{/-last}}
+        {{/isHttr2}}
+        {{#isHttr2}}
+        "{{baseName}}" = {{paramName}}{{^-last}},{{/-last}}
+        {{/isHttr2}}
         {{/isFile}}
         {{/formParams}}
       )
@@ -308,6 +312,17 @@
       {{#isBasic}}
       {{#isBasicBasic}}
       # HTTP basic auth
+      if (is.null(self$api_client$username) || is.null(self$api_client$password)) {
+        {{#useDefaultExceptionHandling}}
+        stop("username, password in `api_client` must be set for authentication in the endpoint `{{{operationId}}}`.")
+        {{/useDefaultExceptionHandling}}
+        {{#useRlangExceptionHandling}}
+        rlang::abort(message = "username, password in `api_client` must be set for authentication in the endpoint `{{{operationId}}}`.",
+                     .subclass = "ApiException",
+                     ApiException = ApiException$new(status = 0,
+                                                     reason = "username, password in `api_client` must be set for authentication in the endpoint `{{{operationId}}}`."))
+        {{/useRlangExceptionHandling}}
+      }
       header_params["Authorization"] <- paste("Basic", base64enc::base64encode(charToRaw(paste(self$api_client$username, self$api_client$password, sep = ":"))))
       {{/isBasicBasic}}
       {{#isBasicBearer}}
@@ -357,10 +372,10 @@
       }
 
       {{/vendorExtensions.x-streaming}}
-      if (httr::status_code(local_var_resp) >= 200 && httr::status_code(local_var_resp) <= 299) {
+      if (local_var_resp$status_code >= 200 && local_var_resp$status_code <= 299) {
         {{#returnType}}
         {{#isPrimitiveType}}
-        local_var_content <- httr::content(
+        local_var_content <- local_var_resp$response
             local_var_resp, "text", encoding = "UTF-8", simplifyVector = FALSE
         )
         # save response in a file
@@ -373,11 +388,11 @@
         {{^isPrimitiveType}}
         # save response in a file
         if (!is.null(data_file)) {
-            write(httr::content(local_var_resp, "text", encoding = "UTF-8", simplifyVector = FALSE), data_file)
+            write(local_var_resp$response, data_file)
         }
 
         deserialized_resp_obj <- tryCatch(
-          self$api_client$deserialize(local_var_resp, "{{returnType}}", loadNamespace("{{packageName}}")),
+          self$api_client$deserialize(local_var_resp$response, "{{returnType}}", loadNamespace("{{packageName}}")),
           error = function(e) {
            {{#useDefaultExceptionHandling}}
              stop("Failed to deserialize response")
@@ -389,18 +404,19 @@
            {{/useRlangExceptionHandling}}
           }
         )
-        ApiResponse$new(deserialized_resp_obj, local_var_resp)
+        local_var_resp$content <- deserialized_resp_obj
         {{/isPrimitiveType}}
         {{/returnType}}
         {{^returnType}}
         {{! Returning the ApiResponse object with NULL object when the endpoint doesn't return anything}}
-        ApiResponse$new(NULL, local_var_resp)
+        local_var_resp$content <- NULL
         {{/returnType}}
-      } else if (httr::status_code(local_var_resp) >= 300 && httr::status_code(local_var_resp) <= 399) {
+        local_var_resp
+      } else if (local_var_resp$status_code >= 300 && local_var_resp$status_code <= 399) {
       {{#returnExceptionOnFailure}}
-        local_var_error_msg <- toString(content(local_var_resp))
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
-          local_var_error_msg <- paste("Server returned ", httr::status_code(local_var_resp), " response status code.")
+          local_var_error_msg <- paste("Server returned ", local_var_resp$status_code, " response status code.")
         }
         {{#useDefaultExceptionHandling}}
         stop(local_var_error_msg)
@@ -412,11 +428,11 @@
         {{/useRlangExceptionHandling}}
       {{/returnExceptionOnFailure}}
       {{^returnExceptionOnFailure}}
-        ApiResponse$new(paste("Server returned ", httr::status_code(local_var_resp), " response status code."), local_var_resp)
+        ApiResponse$new(paste("Server returned ", local_var_resp$status_code, " response status code."), local_var_resp)
       {{/returnExceptionOnFailure}}
-      } else if (httr::status_code(local_var_resp) >= 400 && httr::status_code(local_var_resp) <= 499) {
+      } else if (local_var_resp$status_code >= 400 && local_var_resp$status_code <= 499) {
       {{#returnExceptionOnFailure}}
-        local_var_error_msg <- toString(content(local_var_resp))
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api client exception encountered."
         }
@@ -432,9 +448,9 @@
       {{^returnExceptionOnFailure}}
         ApiResponse$new("API client error", local_var_resp)
       {{/returnExceptionOnFailure}}
-      } else if (httr::status_code(local_var_resp) >= 500 && httr::status_code(local_var_resp) <= 599) {
+      } else if (local_var_resp$status_code >= 500 && local_var_resp$status_code <= 599) {
       {{#returnExceptionOnFailure}}
-        local_var_error_msg <- toString(content(local_var_resp))
+        local_var_error_msg <- local_var_resp$response
         if (local_var_error_msg == "") {
           local_var_error_msg <- "Api server exception encountered."
         }
@@ -448,7 +464,10 @@
         {{/useRlangExceptionHandling}}
       {{/returnExceptionOnFailure}}
       {{^returnExceptionOnFailure}}
-        ApiResponse$new("API server error", local_var_resp)
+        if (is.null(local_var_resp$response) || local_var_resp$response == "") {
+          local_var_resp$response <- "API server error"
+        }
+        return local_var_resp
       {{/returnExceptionOnFailure}}
       }
     }{{^-last}},{{/-last}}

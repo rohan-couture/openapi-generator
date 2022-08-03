@@ -11,13 +11,19 @@ pet <- Pet$new("name_test",
   ),
   status = "available"
 )
-pet_api$api_client$username <- "username123"
-pet_api$api_client$password <- "password123"
+
+pet_api$api_client$username <- ""
+pet_api$api_client$password <- ""
 result <- pet_api$AddPet(pet)
 
-test_that("AddPet", {
+test_that("Test toJSONString", {
   expect_equal(pet_id, 123321)
   expect_equal(pet$toJSONString(), '{"id":123321,"category":{"id":450,"name":"test_cat"},"name":"name_test","photoUrls":["photo_test","second test"],"tags":[{"id":123,"name":"tag_test"},{"id":456,"name":"unknown"}],"status":"available"}')
+})
+
+test_that("Test FindPetByStatus", {
+  result <- pet_api$FindPetsByStatus("available")
+  expect_equal(result[[1]]$status, "available")
 })
 
 test_that("Test toJSON toJSONString fromJSON fromJSONString", {
@@ -101,18 +107,19 @@ test_that("GetPetByIdStreaming", {
             )
 })
 
-#test_that("test GetPetById exception", {
-#  # test exception 
-#  result <- tryCatch(petApi$GetPetById(98765), # petId not exist
-#         error = function(ex) ex
-#  )
-#
-#  expect_true(!is.null(result))
-#  #expect_equal(result$toString(),"")
-#  expect_equal(result, "1")
-#  #expect_equal(result$ApiException$errorObject$code, 1)
-#  #expect_equal(response$name, "name_test")
-#})
+test_that("Test GetPetById exception", {
+  # test exception 
+  result <- tryCatch(pet_api$GetPetById(98765), # petId not exist
+          ApiException = function(ex) ex
+  )
+
+  expect_true(!is.null(result))
+  expect_true(!is.null(result$ApiException))
+  expect_equal(result$ApiException$status, 404)
+  # test error object `ApiResponse`
+  expect_equal(result$ApiException$error_object$toString(), "{\"code\":1,\"type\":\"error\",\"message\":\"Pet not found\"}")
+  expect_equal(result$ApiException$error_object$code, 1)
+})
 
 test_that("GetPetById with data_file", {
   # test to ensure json is saved to the file `get_pet_by_id.json`
