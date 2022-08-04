@@ -138,16 +138,20 @@ ApiClient  <- R6::R6Class(
     #' @param method HTTP method.
     #' @param query_params The query parameters.
     #' @param header_params The header parameters.
+    #' @param form_params The form parameters.
+    #' @param file_params The form parameters to upload files
+    #' @param accepts The HTTP accpet headers.
+    #' @param content_types The HTTP content-type headers.
     #' @param body The HTTP request body.
     #' @param stream_callback Callback function to process the data stream
     #' @param ... Other optional arguments.
     #' @return HTTP response
     #' @export
-    CallApi = function(url, method, query_params, header_params, accepts,
-                       content_types, body, stream_callback = NULL, ...) {
+    CallApi = function(url, method, query_params, header_params, form_params, file_params,
+                       accepts, content_types, body, stream_callback = NULL, ...) {
 
-      resp <- self$Execute(url, method, query_params, header_params,
-                           accepts, content_types,
+      resp <- self$Execute(url, method, query_params, header_params, form_params,
+                           file_params, accepts, content_types,
                            body, stream_callback = stream_callback, ...)
       #status_code <- httr::status_code(resp)
 
@@ -179,25 +183,25 @@ ApiClient  <- R6::R6Class(
     #' @param method HTTP method.
     #' @param query_params The query parameters.
     #' @param header_params The header parameters.
+    #' @param form_params The form parameters.
+    #' @param file_params The form parameters for uploading files.
+    #' @param accepts The HTTP accpet headers.
+    #' @param content_types The HTTP content-type headers.
     #' @param body The HTTP request body.
     #' @param stream_callback Callback function to process data stream
     #' @param ... Other optional arguments.
     #' @return HTTP response
     #' @export
-    Execute = function(url, method, query_params, header_params, accepts, content_types,
-                       body, stream_callback = NULL, ...) {
+    Execute = function(url, method, query_params, header_params, form_params, file_params,
+                       accepts, content_types, body, stream_callback = NULL, ...) {
       req <- request(url)
 
       ## add headers and default headers
       if (!is.null(header_params) && length(header_params) != 0) {
-        for (http_header in names(header_params)) {
-          req <- req %>% req_headers(http_header = header_params[http_header])
-        }
+        req <- req %>% req_headers(!!!header_params)
       }
       if (!is.null(self$default_headers) && length(self$default_headers) != 0) {
-        for (http_header in names(header_params)) {
-          req <- req %>% req_headers(http_header = self$default_headers[http_header])
-        }
+        req <- req %>% req_headers(!!!self$default_headers)
       }
 
       # set HTTP accept header
@@ -216,6 +220,21 @@ ApiClient  <- R6::R6Class(
       if (length(query_params) != 0) {
         for (query_param in names(query_params)) {
           req <- req %>% req_url_query(query_param = query_params[query_param])
+        }
+      }
+
+      # has file upload?
+      if (!is.null(file_params) && length(file_params) != 0) {
+        req <- req %>% req_body_multipart(!!!file_params)
+
+        # add form parameters via req_body_multipart
+        if (!is.null(form_params) && length(form_params) != 0) {
+          req <- req %>% req_body_multipart(!!!form_params)
+        }
+      } else { # no file upload
+        # add form parameters via req_body_form
+        if (!is.null(form_params) && length(form_params) != 0) {
+          req <- req %>% req_body_form(!!!form_params)
         }
       }
 
