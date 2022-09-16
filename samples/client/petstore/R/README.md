@@ -62,6 +62,8 @@ All URIs are relative to *http://petstore.swagger.io/v2*
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
 *FakeApi* | [**FakeDataFile**](docs/FakeApi.md#FakeDataFile) | **GET** /fake/data_file | test data_file to ensure it's escaped correctly
+*FakeApi* | [**FakeRegularExpression**](docs/FakeApi.md#FakeRegularExpression) | **GET** /fake/regular_expression | test regular expression to ensure no exception
+*FakeApi* | [**FakeSetQuery**](docs/FakeApi.md#FakeSetQuery) | **GET** /fake/set_query_parameter | test set query parameter
 *PetApi* | [**AddPet**](docs/PetApi.md#AddPet) | **POST** /pet | Add a new pet to the store
 *PetApi* | [**DeletePet**](docs/PetApi.md#DeletePet) | **DELETE** /pet/{petId} | Deletes a pet
 *PetApi* | [**FindPetsByStatus**](docs/PetApi.md#FindPetsByStatus) | **GET** /pet/findByStatus | Finds Pets by status
@@ -91,15 +93,19 @@ Class | Method | HTTP request | Description
  - [AllofTagApiResponse](docs/AllofTagApiResponse.md)
  - [Animal](docs/Animal.md)
  - [AnyOfPig](docs/AnyOfPig.md)
+ - [AnyOfPrimitiveTypeTest](docs/AnyOfPrimitiveTypeTest.md)
  - [BasquePig](docs/BasquePig.md)
  - [Cat](docs/Cat.md)
  - [CatAllOf](docs/CatAllOf.md)
  - [Category](docs/Category.md)
  - [DanishPig](docs/DanishPig.md)
+ - [Date](docs/Date.md)
  - [Dog](docs/Dog.md)
  - [DogAllOf](docs/DogAllOf.md)
+ - [Mammal](docs/Mammal.md)
  - [ModelApiResponse](docs/ModelApiResponse.md)
  - [NestedOneOf](docs/NestedOneOf.md)
+ - [OneOfPrimitiveTypeTest](docs/OneOfPrimitiveTypeTest.md)
  - [Order](docs/Order.md)
  - [Pet](docs/Pet.md)
  - [Pig](docs/Pig.md)
@@ -107,6 +113,8 @@ Class | Method | HTTP request | Description
  - [Tag](docs/Tag.md)
  - [UpdatePetRequest](docs/UpdatePetRequest.md)
  - [User](docs/User.md)
+ - [Whale](docs/Whale.md)
+ - [Zebra](docs/Zebra.md)
 
 
 ## Documentation for Authorization
@@ -114,7 +122,7 @@ Class | Method | HTTP request | Description
 
 ### BearerToken
 
-- **Type**: HTTP basic authentication
+- **Type**: Bearer authentication
 
 ### api_key
 
@@ -132,12 +140,7 @@ Class | Method | HTTP request | Description
 - **Flow**: implicit
 - **Authorization URL**: http://petstore.swagger.io/api/oauth/dialog
 - **Scopes**: 
-  - write:pets: modify pets in your account
-  - read:pets: read your pets
-
-
-
-## Author
-
+  - `write:pets`: modify pets in your account
+  - `read:pets`: read your pets
 
 

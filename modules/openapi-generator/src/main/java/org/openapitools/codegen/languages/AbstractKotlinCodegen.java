@@ -117,6 +117,7 @@ public abstract class AbstractKotlinCodegen extends DefaultCodegen implements Co
                 "const",
                 "constructor",
                 "continue",
+                "contract",
                 "crossinline",
                 "data",
                 "delegate",
@@ -1026,6 +1027,9 @@ public abstract class AbstractKotlinCodegen extends DefaultCodegen implements Co
             if (p.getDefault() != null) {
                 String arrInstantiationType = ModelUtils.isSet(p) ? "set" : "arrayList";
 
+                if (!(p.getDefault() instanceof ArrayNode)) {
+                    return null;
+                }
                 ArrayNode _default = (ArrayNode) p.getDefault();
                 if (_default.isEmpty()) {
                     return arrInstantiationType + "Of()";

@@ -82,7 +82,7 @@ paths:
           description: Status values that need to be considered for filter
           required: true
           style: form
-          explode: false
+          explode: true # change to true for testing purpose
           deprecated: true
           schema:
             type: array
@@ -148,9 +148,10 @@ paths:
                   $ref: '#/components/schemas/Pet'
         '400':
           description: Invalid tag value
-      security:
-        - petstore_auth:
-            - 'read:pets'
+      # comment out for testing purpose
+      #security:
+      #  - petstore_auth:
+      #      - 'read:pets'
       deprecated: true
   '/pet/{petId}':
     get:
@@ -200,10 +201,10 @@ paths:
       responses:
         '405':
           description: Invalid input
-      security:
-        - petstore_auth:
-            - 'write:pets'
-            - 'read:pets'
+      #security:
+      #  - petstore_auth:
+      #      - 'write:pets'
+      #      - 'read:pets'
       requestBody:
         content:
           application/x-www-form-urlencoded:
@@ -628,6 +629,24 @@ paths:
           description: User not found
       security:
         - api_key: []
+  /fake/regular_expression:
+    get:
+      tags:
+        - fake
+      summary: test regular expression to ensure no exception
+      description: ''
+      operationId: fake_regular-expression
+      parameters:
+        - name: reg_exp_test
+          in: header
+          description: dummy required parameter
+          required: true
+          schema:
+            type: string
+            pattern: /^[A-Za-z0-9_]{1,15}$/
+      responses:
+        '200':
+          description: successful operation
   /fake/data_file:
     get:
       tags:
@@ -658,6 +677,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+  /fake/set_query_parameter:
+    get:
+      tags:
+        - fake
+      summary: test set query parameter
+      description: ''
+      operationId: fake_set_query
+      parameters:
+        - name: set_dummy 
+          in: query 
+          description: set query
+          required: true
+          schema:
+            type: array
+            uniqueItems: true
+            items:
+              type: string
+        - name: array_dummy
+          in: query 
+          description: array query
+          required: true
+          schema:
+            type: array
+            uniqueItems: false
+            items:
+              type: string
+      responses:
+        '200':
+          description: successful operation
 externalDocs:
   description: Find out more about Swagger
   url: 'http://swagger.io'
@@ -942,3 +990,55 @@ components:
           type: integer
         nested_pig:
           $ref: '#/components/schemas/Pig'
+    OneOfPrimitiveTypeTest:
+      oneOf:
+        - type: "integer"
+        - type: "string"
+    AnyOfPrimitiveTypeTest:
+      oneOf:
+        - type: "integer"
+        - type: "string"
+    mammal:
+      oneOf:
+        - $ref: '#/components/schemas/whale'
+        - $ref: '#/components/schemas/zebra'
+      discriminator:
+        propertyName: className
+        mapping:
+          whale: '#/components/schemas/whale'
+          zebra: '#/components/schemas/zebra'
+    whale:
+      type: object
+      properties:
+        hasBaleen:
+          type: boolean
+        hasTeeth:
+          type: boolean
+        className:
+          type: string
+      required:
+        - className
+    zebra:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - plains
+            - mountain
+            - grevys
+        className:
+          type: string
+      required:
+        - className
+    Date:
+      description: to test the model name `Date`
+      type: object
+      properties:
+        className:
+          type: string
+        percent_description:
+          description: using % in the description
+          type: string
+      required:
+        - className

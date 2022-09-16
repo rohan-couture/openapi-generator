@@ -80,8 +80,8 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
     public static final String USE_INLINE_MODEL_RESOLVER = "useInlineModelResolver";
 
     protected String packageUrl;
-    protected String apiDocPath = "docs/";
-    protected String modelDocPath = "docs/";
+    protected String apiDocPath = "docs/apis/tags/";
+    protected String modelDocPath = "docs/models/";
     protected boolean useNose = false;
     protected boolean useInlineModelResolver = false;
 
@@ -105,10 +105,13 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
     // for apis.tags tag api definition
     private Map<String, String> tagEnumToApiClassname = new LinkedHashMap<>();
 
-
     public PythonExperimentalClientCodegen() {
         super();
         loadDeepObjectIntoItems = false;
+        importBaseType = false;
+        addSchemaImportsFromV3SpecLocations = true;
+        sortModelPropertiesByRequiredFlag = Boolean.TRUE;
+        sortParamsByRequiredFlag = Boolean.TRUE;
 
         modifyFeatureSet(features -> features
                 .includeSchemaSupportFeatures(
@@ -279,6 +282,12 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
         }
 
         modelTemplateFiles.put("model." + templateExtension, ".py");
+        /*
+        This stub file exists to allow pycharm to read and use typing.overload decorators for it to see that
+        dict_instance["someProp"] is of type SomeClass.properties.someProp
+        See https://youtrack.jetbrains.com/issue/PY-42137/PyCharm-type-hinting-doesnt-work-well-with-overload-decorator
+         */
+        modelTemplateFiles.put("model_stub." + templateExtension, ".pyi");
         apiTemplateFiles.put("api." + templateExtension, ".py");
         modelTestTemplateFiles.put("model_test." + templateExtension, ".py");
         modelDocTemplateFiles.put("model_doc." + templateExtension, ".md");
@@ -321,10 +330,11 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
         }
 
         if (generateSourceCodeOnly) {
-            // tests in <package>/test
+            // tests in test
             testFolder = packagePath() + File.separatorChar + testFolder;
-            // api/model docs in <package>/docs
+            // api docs in <package>/docs/apis/tags/
             apiDocPath = packagePath() + File.separatorChar + apiDocPath;
+            // model docs in <package>/docs/models/
             modelDocPath = packagePath() + File.separatorChar + modelDocPath;
         }
         // make api and model doc path available in templates
@@ -550,6 +560,13 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
             endpointMap.put("packageName", packageName);
             outputFilename = packageFilename(Arrays.asList("paths", pathModuleName, co.httpMethod + ".py"));
             pathsFiles.add(Arrays.asList(endpointMap, "endpoint.handlebars", outputFilename));
+            /*
+            This stub file exists to allow pycharm to read and use typing.overload decorators for it to see that
+            dict_instance["someProp"] is of type SomeClass.properties.someProp
+            See https://youtrack.jetbrains.com/issue/PY-42137/PyCharm-type-hinting-doesnt-work-well-with-overload-decorator
+             */
+            String stubOutputFilename = packageFilename(Arrays.asList("paths", pathModuleName, co.httpMethod + ".pyi"));
+            pathsFiles.add(Arrays.asList(endpointMap, "endpoint_stub.handlebars", stubOutputFilename));
 
             Map<String, Object> endpointTestMap = new HashMap<>();
             endpointTestMap.put("operation", co);
@@ -661,6 +678,7 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
                 }
                 addVars(property, property.getVars(), schema.getProperties(), requiredVars);
             }
+            addRequiredVarsMap(schema, property);
             return;
         } else if (ModelUtils.isTypeObjectSchema(schema)) {
             HashSet<String> requiredVars = new HashSet<>();
@@ -673,6 +691,7 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
                 property.setHasVars(true);
             }
         }
+        addRequiredVarsMap(schema, property);
         return;
     }
 
@@ -864,7 +883,6 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
 
         OperationMap val = objs.getOperations();
         List<CodegenOperation> operations = val.getOperation();
-        List<Map<String, String>> imports = objs.getImports();
         for (CodegenOperation operation : operations) {
             if (operation.imports.size() == 0) {
                 continue;
@@ -899,12 +917,7 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
         boolean anyModelContainsTestCases = false;
         Map<String, Schema> allDefinitions = ModelUtils.getSchemas(this.openAPI);
         for (String schemaName : allDefinitions.keySet()) {
-            Schema refSchema = new Schema().$ref("#/components/schemas/" + schemaName);
-            Schema unaliasedSchema = unaliasSchema(refSchema);
             String modelName = toModelName(schemaName);
-            if (unaliasedSchema.get$ref() == null) {
-                continue;
-            }
             ModelsMap objModel = objs.get(modelName);
             if (objModel == null) {
                 // to avoid form parameter's models that are not generated (skipFormModel=true)
@@ -991,12 +1004,17 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
      * This method is used by fromResponse
      *
      * @param name name of the property
-     * @param p    OAS property object
+     * @param p OAS property schema
+     * @param required true if the property is required in the next higher object schema, false otherwise
+     * @param schemaIsFromAdditionalProperties true if the property is defined by additional properties schema
      * @return Codegen Property object
      */
     @Override
-    public CodegenProperty fromProperty(String name, Schema p, boolean required) {
-        CodegenProperty cp = super.fromProperty(name, p, required);
+    public CodegenProperty fromProperty(String name, Schema p, boolean required, boolean schemaIsFromAdditionalProperties) {
+        // fix needed for values with /n /t etc in them
+        String fixedName = handleSpecialCharacters(name);
+        CodegenProperty cp = super.fromProperty(fixedName, p, required, schemaIsFromAdditionalProperties);
+
         if (cp.isAnyType && cp.isNullable) {
             cp.isNullable = false;
         }
@@ -1012,9 +1030,8 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
         // set cp.nameInSnakeCase to a value so we can tell that we are in this use case
         // we handle this in the schema templates
         // templates use its presence to handle these badly named variables / keys
-        if ((isReservedWord(name) || !isValidPythonVarOrClassName(name)) && !name.equals(cp.name)) {
+        if ((isReservedWord(cp.baseName) || !isValidPythonVarOrClassName(cp.baseName)) && !cp.baseName.equals(cp.name)) {
             cp.nameInSnakeCase = cp.name;
-            cp.baseName = (String) processTestExampleData(name);
         } else {
             cp.nameInSnakeCase = null;
         }
@@ -1031,10 +1048,10 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
 
     private void setAdditionalPropsAndItemsVarNames(IJsonSchemaValidationProperties item) {
         if (item.getAdditionalProperties() != null) {
-            item.getAdditionalProperties().setBaseName("_additional_properties");
+            item.getAdditionalProperties().setBaseName("additional_properties");
         }
         if (item.getItems() != null) {
-            item.getItems().setBaseName("_items");
+            item.getItems().setBaseName("items");
         }
     }
 
@@ -1151,9 +1168,6 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
             schema.setName(name);
             codegenModel = fromModel(name, schema);
         }
-        if (codegenModel != null) {
-            codegenParameter.isModel = true;
-        }
 
         if (codegenModel != null && (codegenModel.hasVars || forceSimpleRef)) {
             if (StringUtils.isEmpty(bodyParameterName)) {
@@ -1166,49 +1180,32 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
             codegenParameter.dataType = getTypeDeclaration(codegenModel.classname);
             codegenParameter.description = codegenModel.description;
             codegenParameter.isNullable = codegenModel.isNullable;
-            imports.add(codegenParameter.baseType);
         } else {
             CodegenProperty codegenProperty = fromProperty("property", schema, false);
 
-            if (codegenProperty != null && codegenProperty.getComplexType() != null && codegenProperty.getComplexType().contains(" | ")) {
-                List<String> parts = Arrays.asList(codegenProperty.getComplexType().split(" \\| "));
-                imports.addAll(parts);
-                String codegenModelName = codegenProperty.getComplexType();
-                codegenParameter.baseName = codegenModelName;
-                codegenParameter.paramName = toParamName(codegenParameter.baseName);
-                codegenParameter.baseType = codegenParameter.baseName;
-                codegenParameter.dataType = getTypeDeclaration(codegenModelName);
-                codegenParameter.description = codegenProperty.getDescription();
-                codegenParameter.isNullable = codegenProperty.isNullable;
-            } else {
-                if (ModelUtils.isMapSchema(schema)) {// http body is map
-                    LOGGER.error("Map should be supported. Please report to openapi-generator github repo about the issue.");
-                } else if (codegenProperty != null) {
-                    String codegenModelName, codegenModelDescription;
+            if (ModelUtils.isMapSchema(schema)) {// http body is map
+                // LOGGER.error("Map should be supported. Please report to openapi-generator github repo about the issue.");
+            } else if (codegenProperty != null) {
+                String codegenModelName, codegenModelDescription;
 
-                    if (codegenModel != null) {
-                        codegenModelName = codegenModel.classname;
-                        codegenModelDescription = codegenModel.description;
-                    } else {
-                        codegenModelName = "anyType";
-                        codegenModelDescription = "";
-                    }
-
-                    if (StringUtils.isEmpty(bodyParameterName)) {
-                        codegenParameter.baseName = codegenModelName;
-                    } else {
-                        codegenParameter.baseName = bodyParameterName;
-                    }
-
-                    codegenParameter.paramName = toParamName(codegenParameter.baseName);
-                    codegenParameter.baseType = codegenModelName;
-                    codegenParameter.dataType = getTypeDeclaration(codegenModelName);
-                    codegenParameter.description = codegenModelDescription;
-
-                    if (codegenProperty.complexType != null) {
-                        imports.add(codegenProperty.complexType);
-                    }
+                if (codegenModel != null) {
+                    codegenModelName = codegenModel.classname;
+                    codegenModelDescription = codegenModel.description;
+                } else {
+                    codegenModelName = "anyType";
+                    codegenModelDescription = "";
                 }
+
+                if (StringUtils.isEmpty(bodyParameterName)) {
+                    codegenParameter.baseName = codegenModelName;
+                } else {
+                    codegenParameter.baseName = bodyParameterName;
+                }
+
+                codegenParameter.paramName = toParamName(codegenParameter.baseName);
+                codegenParameter.baseType = codegenModelName;
+                codegenParameter.dataType = getTypeDeclaration(codegenModelName);
+                codegenParameter.description = codegenModelDescription;
             }
 
             // set nullable
@@ -1305,9 +1302,9 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
             return value;
         } else if ("bool".equals(datatype)) {
             if (value.equals("true")) {
-                return "BoolClass.TRUE";
+                return "schemas.BoolClass.TRUE";
             }
-            return "BoolClass.FALSE";
+            return "schemas.BoolClass.FALSE";
         } else {
             String fixedValue = (String) processTestExampleData(value);
             return ensureQuotes(fixedValue);
@@ -1339,7 +1336,7 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
         return CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, specTestCaseName);
     }
 
-    private String processStringValue(String value) {
+    protected String handleSpecialCharacters(String value) {
         // handles escape characters and the like
         String stringValue = value;
         String backslash = "\\";
@@ -1379,7 +1376,7 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
         } else if (value instanceof Double || value instanceof Float || value instanceof Boolean){
             return value;
         } else if (value instanceof String) {
-            return processStringValue((String) value);
+            return handleSpecialCharacters((String) value);
         } else if (value instanceof LinkedHashMap) {
             LinkedHashMap<String, Object> fixedValues = new LinkedHashMap();
             for (Map.Entry entry: ((LinkedHashMap<String, Object>) value).entrySet()) {
@@ -1414,25 +1411,11 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
     @Override
     public CodegenModel fromModel(String name, Schema sc) {
         CodegenModel cm = super.fromModel(name, sc);
-        Schema unaliasedSchema = unaliasSchema(sc);
-        if (unaliasedSchema != null) {
-            if (ModelUtils.isDecimalSchema(unaliasedSchema)) { // type: string, format: number
-                cm.isString = false;
-                cm.isDecimal = true;
-            }
-        }
 
         if (cm.isNullable) {
             cm.setIsNull(true);
             cm.isNullable = false;
             cm.setHasMultipleTypes(true);
-        }
-        // TODO improve this imports addition code
-        if (cm.isArray && cm.getItems() != null && cm.getItems().complexType != null) {
-            cm.imports.add(cm.getItems().complexType);
-        }
-        if (cm.isArray && cm.getItems() != null && cm.getItems().mostInnerItems != null && cm.getItems().mostInnerItems.complexType != null) {
-            cm.imports.add(cm.getItems().mostInnerItems.complexType);
         }
         Boolean isNotPythonModelSimpleModel = (ModelUtils.isComposedSchema(sc) || ModelUtils.isObjectSchema(sc) || ModelUtils.isMapSchema(sc));
         setAdditionalPropsAndItemsVarNames(cm);
@@ -1584,22 +1567,6 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
 
     @Override
     protected void addAdditionPropertiesToCodeGenModel(CodegenModel codegenModel, Schema schema) {
-        Schema addProps = getAdditionalProperties(schema);
-        if (addProps != null) {
-            // if AdditionalProperties exists, get its datatype and
-            // store it in codegenModel.additionalPropertiesType.
-            // The 'addProps' may be a reference, getTypeDeclaration will resolve
-            // the reference.
-            List<String> referencedModelNames = new ArrayList<String>();
-            codegenModel.additionalPropertiesType = getTypeString(addProps, "", "", referencedModelNames);
-            if (referencedModelNames.size() != 0) {
-                // Models that are referenced in the 'additionalPropertiesType' keyword
-                // must be added to the imports.
-                codegenModel.imports.addAll(referencedModelNames);
-            }
-        }
-        // If addProps is null, the value of the 'additionalProperties' keyword is set
-        // to false, i.e. no additional properties are allowed.
     }
 
     /**
@@ -1677,23 +1644,6 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
             }
         }
         return null;
-    }
-
-    /**
-     * Function to isolate the call to add schemas to the includedSchemas list that will detect when
-     * a schema is added multiple times.
-     * @param includedSchemas List of includedSchemas from toExampleValueRecursive
-     * @param schema the schema to add
-     */
-    private void addSchemaToIncludedSchemaList(List<Schema> includedSchemas, Schema schema) {
-
-        // if the schema is in the list, then throw an exception.
-        // this should never happen
-        if(includedSchemas.contains(schema)) {
-            throw new RuntimeException("Attempted to add a schema to the includedSchemas list twice");
-        }
-
-        includedSchemas.add(schema);
     }
 
     /***
@@ -1776,7 +1726,10 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
             Boolean hasProperties = (schema.getProperties() != null && !schema.getProperties().isEmpty());
             CodegenDiscriminator disc = createDiscriminator(modelName, schema, openAPI);
             if (ModelUtils.isComposedSchema(schema)) {
-                addSchemaToIncludedSchemaList(includedSchemas, schema);
+                if(includedSchemas.contains(schema)) {
+                    return "";
+                }
+                includedSchemas.add(schema);
                 // complex composed object type schemas not yet handled and the code returns early
                 if (hasProperties) {
                     // what if this composed schema defined properties + allOf?
@@ -1835,7 +1788,7 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
             return fullPrefix + example + closeChars;
         } else if (ModelUtils.isStringSchema(schema)) {
             if (example != null) {
-                return fullPrefix + ensureQuotes(processStringValue(example)) + closeChars;
+                return fullPrefix + ensureQuotes(handleSpecialCharacters(example)) + closeChars;
             }
             if (ModelUtils.isDateSchema(schema)) {
                 if (objExample == null) {
@@ -1941,7 +1894,10 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
             ArraySchema arrayschema = (ArraySchema) schema;
             Schema itemSchema = arrayschema.getItems();
             String itemModelName = getModelName(itemSchema);
-            addSchemaToIncludedSchemaList(includedSchemas, schema);
+            if(includedSchemas.contains(schema)) {
+                return "";
+            }
+            includedSchemas.add(schema);
             String itemExample = toExampleValueRecursive(itemModelName, itemSchema, objExample, indentationLevel + 1, "", exampleLine + 1, includedSchemas);
             if (StringUtils.isEmpty(itemExample) || cycleFound) {
                 return fullPrefix + "[]" + closeChars;
@@ -2018,7 +1974,11 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
                     addPropPrefix = ensureQuotes(key) + ": ";
                 }
                 String addPropsModelName = getModelName(addPropsSchema);
-                addSchemaToIncludedSchemaList(includedSchemas, schema);
+                if(includedSchemas.contains(schema)) {
+                    return "";
+                }
+                includedSchemas.add(schema);
+
                 example = fullPrefix + "\n" + toExampleValueRecursive(addPropsModelName, addPropsSchema, addPropsExample, indentationLevel + 1, addPropPrefix, exampleLine + 1, includedSchemas) + ",\n" + closingIndentation + closeChars;
             } else {
                 example = fullPrefix + closeChars;
@@ -2035,14 +1995,18 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
     }
 
     private String exampleForObjectModel(Schema schema, String fullPrefix, String closeChars, CodegenProperty discProp, int indentationLevel, int exampleLine, String closingIndentation, List<Schema> includedSchemas) {
+
         Map<String, Schema> requiredAndOptionalProps = schema.getProperties();
         if (requiredAndOptionalProps == null || requiredAndOptionalProps.isEmpty()) {
             return fullPrefix + closeChars;
         }
 
-        String example = fullPrefix + "\n";
+        if(includedSchemas.contains(schema)) {
+            return "";
+        }
+        includedSchemas.add(schema);
 
-        addSchemaToIncludedSchemaList(includedSchemas, schema);
+        String example = fullPrefix + "\n";
 
         for (Map.Entry<String, Schema> entry : requiredAndOptionalProps.entrySet()) {
             String propName = entry.getKey();
@@ -2055,14 +2019,25 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
                 propExample = discProp.example;
             } else {
                 propModelName = getModelName(propSchema);
-                propExample = exampleFromStringOrArraySchema(propSchema, null, propName);
+                propExample = exampleFromStringOrArraySchema(
+                        propSchema,
+                        null,
+                        propName);
             }
 
-            example += toExampleValueRecursive(propModelName, propSchema, propExample, indentationLevel + 1, propName + "=", exampleLine + 1, includedSchemas) + ",\n";
+            example += toExampleValueRecursive(propModelName,
+                                               propSchema,
+                                               propExample,
+                                               indentationLevel + 1,
+                                               propName + "=",
+                                               exampleLine + 1,
+                                               includedSchemas) + ",\n";
         }
+
         // TODO handle additionalProperties also
         example += closingIndentation + closeChars;
         return example;
+
     }
 
     private Object exampleFromStringOrArraySchema(Schema sc, Object currentExample, String propName) {
@@ -2202,52 +2177,24 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
         return modelNameToSchemaCache;
     }
 
+    /**
+     * Use cases:
+     * additional properties is unset: do nothing
+     * additional properties is true: add definiton to property
+     * additional properties is false: add definiton to property
+     * additional properties is schema: add definiton to property
+     *
+     * @param schema the schema that may contain an additional property schema
+     * @param property the property for the above schema
+     */
     @Override
     protected void setAddProps(Schema schema, IJsonSchemaValidationProperties property){
-        if (schema.equals(new Schema())) {
-            // if we are trying to set additionalProperties on an empty schema stop recursing
+        Schema addPropsSchema = getSchemaFromBooleanOrSchema(schema.getAdditionalProperties());
+        if (addPropsSchema == null) {
             return;
         }
-        boolean additionalPropertiesIsAnyType = false;
-        CodegenModel m = null;
-        if (property instanceof CodegenModel) {
-            m = (CodegenModel) property;
-        }
-        CodegenProperty addPropProp = null;
-        boolean isAdditionalPropertiesTrue = false;
-        if (schema.getAdditionalProperties() == null) {
-            if (!disallowAdditionalPropertiesIfNotPresent) {
-                isAdditionalPropertiesTrue = true;
-                addPropProp = fromProperty("",  new Schema());
-                addPropProp.nameInSnakeCase = null;
-                additionalPropertiesIsAnyType = true;
-            }
-        } else if (schema.getAdditionalProperties() instanceof Boolean) {
-            if (Boolean.TRUE.equals(schema.getAdditionalProperties())) {
-                isAdditionalPropertiesTrue = true;
-                addPropProp = fromProperty("",  new Schema());
-                addPropProp.nameInSnakeCase = null;
-                additionalPropertiesIsAnyType = true;
-            }
-        } else {
-            addPropProp = fromProperty("", (Schema) schema.getAdditionalProperties());
-            addPropProp.nameInSnakeCase = null;
-            if (isAnyTypeSchema((Schema) schema.getAdditionalProperties())) {
-                additionalPropertiesIsAnyType = true;
-            }
-        }
-        if (additionalPropertiesIsAnyType) {
-            property.setAdditionalPropertiesIsAnyType(true);
-        }
-        if (m != null && isAdditionalPropertiesTrue) {
-            m.isAdditionalPropertiesTrue = true;
-        }
-        if (ModelUtils.isComposedSchema(schema) && !supportsAdditionalPropertiesWithComposedSchema) {
-            return;
-        }
-        if (addPropProp != null) {
-            property.setAdditionalProperties(addPropProp);
-        }
+        CodegenProperty addPropProp = fromProperty("",  addPropsSchema, false, false);
+        property.setAdditionalProperties(addPropProp);
     }
 
     /**
@@ -2284,32 +2231,69 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
 
     }
 
+    /**
+     * Sets the booleans that define the model's type
+     *
+     * @param model the model to update
+     * @param schema the model's schema
+     */
+    protected void updateModelForString(CodegenModel model, Schema schema) {
+        if (ModelUtils.isDateTimeSchema(schema)) {
+            // isString stays true, format stores that this is a date-time
+        } else if (ModelUtils.isDateSchema(schema)) {
+            // isString stays true, format stores that this is a date
+        } else if (ModelUtils.isUUIDSchema(schema)) {
+            // isString stays true, format stores that this is a uuid
+        } else if (ModelUtils.isDecimalSchema(schema)) {
+            // isString stays true, format stores that this is a uuid
+        } else if (ModelUtils.isBinarySchema(schema)) {
+            // format stores that this is binary
+            model.isString = true;
+        }
+    }
+
+    protected void updateModelForNumber(CodegenModel model, Schema schema) {
+        model.setIsNumber(true);
+        // float vs double info is stored in format
+    }
+
+    protected void updateModelForInteger(CodegenModel model, Schema schema) {
+        model.isInteger = true;
+        // int32 int64 info is stored in format
+    }
+
     protected void updatePropertyForString(CodegenProperty property, Schema p) {
         if (ModelUtils.isByteArraySchema(p)) {
-            property.isByteArray = true;
-            property.setIsString(false);
+            // isString stays true, format stores that this is a byte
         } else if (ModelUtils.isBinarySchema(p)) {
-            property.isBinary = true;
-            property.isFile = true; // file = binary in OAS3
+            // format stores that this is binary
+            property.isString = true;
         } else if (ModelUtils.isUUIDSchema(p)) {
-            property.setIsString(false); // so the templates only see isUuid
-            property.setIsUuid(true);
+            // isString stays true, format stores that this is a uuid
         } else if (ModelUtils.isURISchema(p)) {
             property.isUri = true;
         } else if (ModelUtils.isEmailSchema(p)) {
             property.isEmail = true;
         } else if (ModelUtils.isDateSchema(p)) { // date format
-            property.setIsString(false); // so the templates only see isDate
-            property.isDate = true;
+            // isString stays true, format stores that this is a date
         } else if (ModelUtils.isDateTimeSchema(p)) { // date-time format
-            property.setIsString(false); // so the templates only see isDateTime
-            property.isDateTime = true;
+            // isString stays true, format stores that this is a date-time
         } else if (ModelUtils.isDecimalSchema(p)) { // type: string, format: number
-            property.setIsString(false); // so the templates only see isDecimal
-            property.isDecimal = true;
+            // isString stays true, format stores that this is a number
         }
         property.pattern = toRegularExpression(p.getPattern());
     }
+
+    protected void updatePropertyForNumber(CodegenProperty property, Schema p) {
+        property.setIsNumber(true);
+        // float and double differentiation is determined with format info
+    }
+
+    protected void updatePropertyForInteger(CodegenProperty property, Schema p) {
+        property.isInteger = true;
+        // int32 and int64 differentiation is determined with format info
+    }
+
 
     @Override
     protected void updatePropertyForObject(CodegenProperty property, Schema p) {
@@ -2328,6 +2312,7 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
 
     @Override
     protected void updateModelForObject(CodegenModel m, Schema schema) {
+        // custom version of this method so properties are always added with addVars
         if (schema.getProperties() != null || schema.getRequired() != null) {
             // passing null to allProperties and allRequired as there's no parent
             addVars(m, unaliasPropertySchema(schema.getProperties()), schema.getRequired(), null, null);
@@ -2336,6 +2321,7 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
         addAdditionPropertiesToCodeGenModel(m, schema);
         // process 'additionalProperties'
         setAddProps(schema, m);
+        addRequiredVarsMap(schema, m);
     }
 
     @Override
@@ -2353,6 +2339,7 @@ public class PythonExperimentalClientCodegen extends AbstractPythonCodegen {
         addAdditionPropertiesToCodeGenModel(m, schema);
         // process 'additionalProperties'
         setAddProps(schema, m);
+        addRequiredVarsMap(schema, m);
     }
 
     @Override

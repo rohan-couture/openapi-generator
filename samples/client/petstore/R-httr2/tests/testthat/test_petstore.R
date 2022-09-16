@@ -1,5 +1,6 @@
 context("basic functionality")
 
+## create a new pet and add to petstore server
 pet_api <- PetApi$new()
 pet_id <- 123321
 pet <- Pet$new("name_test",
@@ -15,12 +16,12 @@ pet_api$api_client$username <- "username123"
 pet_api$api_client$password <- "password123"
 result <- pet_api$add_pet(pet)
 
-test_that("add_pet", {
+test_that("Test toJSON toJSONString fromJSON fromJSONString", {
+  # test pet
   expect_equal(pet_id, 123321)
   expect_equal(pet$toJSONString(), '{"id":123321,"category":{"id":450,"name":"test_cat"},"name":"name_test","photoUrls":["photo_test","second test"],"tags":[{"id":123,"name":"tag_test"},{"id":456,"name":"unknown"}],"status":"available"}')
-})
 
-test_that("Test toJSON toJSONString fromJSON fromJSONString", {
+  # tests for other pet objects
   pet0 <- Pet$new()
   jsonpet <- pet0$toJSON()
   pet2 <- pet0$fromJSON(
@@ -111,6 +112,9 @@ test_that("update_pet_with_form", {
   result <- pet_api$add_pet(update_pet)
 
   ## update pet with form
+  pet_api$api_client$oauth_client_id <- "client_id_aaa"
+  pet_api$api_client$oauth_secret <- "secrete_bbb"
+  pet_api$api_client$oauth_scopes <- "write:pets read:pets"
   update_result <- pet_api$update_pet_with_form(update_pet_id, name = "pet2", status = "sold")
 
   # get pet
@@ -238,6 +242,50 @@ test_that("Tests special item names", {
 
 })
 
+test_that ("Tests validations", {
+  invalid_pet <- Pet$new()
+
+  expect_false(invalid_pet$isValid())
+
+  invalid_fields <- invalid_pet$getInvalidFields()
+  expect_equal(invalid_fields[["name"]], "Non-nullable required field `name` cannot be null.")
+  expect_equal(invalid_fields[["photoUrls"]], "Non-nullable required field `photoUrls` cannot be null.")
+
+  # fix invalid fields
+  invalid_pet$name <- "valid pet"
+  invalid_pet$photoUrls <- list("photo_test", "second test")
+
+  expect_true(invalid_pet$isValid())
+  expect_equal(invalid_pet$getInvalidFields(), list())
+
+})
+
+test_that("Tests oneOf primitive types", {
+  test <- OneOfPrimitiveTypeTest$new()
+  test$fromJSONString("\"123abc\"")
+  expect_equal(test$actual_instance,  '123abc')
+  expect_equal(test$actual_type,  'character')
+
+  test$fromJSONString("456")
+  expect_equal(test$actual_instance,  456)
+  expect_equal(test$actual_type,  'integer')
+
+  expect_error(test$fromJSONString("[45,12]"), "No match found when deserializing the payload into OneOfPrimitiveTypeTest with oneOf schemas character, integer. Details:  Data type doesn't match. Expected: integer. Actual: list., Data type doesn't match. Expected: character. Actual: list.") # should throw an error
+})
+
+test_that("Tests anyOf primitive types", {
+  test <- AnyOfPrimitiveTypeTest$new()
+  test$fromJSONString("\"123abc\"")
+  expect_equal(test$actual_instance,  '123abc')
+  expect_equal(test$actual_type,  'character')
+
+  test$fromJSONString("456")
+  expect_equal(test$actual_instance,  456)
+  expect_equal(test$actual_type,  'integer')
+
+  expect_error(test$fromJSONString("[45,12]"), "No match found when deserializing the payload into AnyOfPrimitiveTypeTest with oneOf schemas character, integer. Details:  Data type doesn't match. Expected: integer. Actual: list., Data type doesn't match. Expected: character. Actual: list.") # should throw an error
+})
+
 test_that("Tests oneOf", {
   basque_pig_json <-
   '{"className": "BasquePig", "color": "red"}'
@@ -350,25 +398,3 @@ test_that("Tests anyOf", {
   expect_error(pig$validateJSON('{}'), 'No match found when deserializing the payload into AnyOfPig with anyOf schemas BasquePig, DanishPig. Details:  The JSON input ` \\{\\} ` is invalid for BasquePig: the required field `className` is missing\\., The JSON input ` \\{\\} ` is invalid for DanishPig: the required field `className` is missing\\.')
 
 })
-
-#test_that("GetPetById", {
-#  pet.id <- pet.id
-#  pet <- Pet$new(pet.id, NULL, "name_test2",
-#                 list("photo_test2", "second test2"),
-#                 NULL, NULL)
-#  result <-pet_api$AddPet(pet)
-#
-#  response <- pet_api$GetPetById(pet.id)
-#
-#  expect_equal(response$id, pet.id)
-#  expect_equal(response$name, "name_test2")
-#  #expect_equal(response$category, Category$new(450,"test_cat"))
-#  expect_equal(response$photoUrls, list("photo_test2", "second test2"))
-#  expect_equal(response$status, NULL)
-#  #expect_equal(response$tags, list(Tag$new(123, "tag_test"), Tag$new(456, "unknown")))
-#})
-
-#test_that("updatePetWithForm", {
-#  response <- pet_api$updatePetWithForm(pet_id, "test", "sold")
-#  expect_equal(response, "Pet updated")
-#})
