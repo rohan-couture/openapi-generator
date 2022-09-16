@@ -10,6 +10,7 @@ from {{packageName}} import util
 {{#operations}}
 {{#operation}}
 
+from global_imports import *
 
 def {{operationId}}({{#allParams}}{{paramName}}{{^required}}=None{{/required}}{{^-last}}, {{/-last}}{{/allParams}}):  # noqa: E501
     """{{summary}}{{^summary}}{{operationId}}{{/summary}}
