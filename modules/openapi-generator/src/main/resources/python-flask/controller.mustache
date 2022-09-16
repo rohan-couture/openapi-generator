@@ -4,13 +4,14 @@ from typing import Dict
 from typing import Tuple
 from typing import Union
 
+from ..global_imports import *
+
 {{#imports}}{{import}}  # noqa: E501
 {{/imports}}
 from {{packageName}} import util
 {{#operations}}
 {{#operation}}
 
-from global_imports import *
 
 def {{operationId}}({{#allParams}}{{paramName}}{{^required}}=None{{/required}}{{^-last}}, {{/-last}}{{/allParams}}):  # noqa: E501
     """{{summary}}{{^summary}}{{operationId}}{{/summary}}
